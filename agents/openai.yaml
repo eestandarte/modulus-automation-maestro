@@ -1,0 +1,4 @@
+interface:
+  display_name: "Modulus Automation Maestro"
+  short_description: "Design effective Maestro ECR tests"
+  default_prompt: "Use $modulus-automation-maestro to design reliable Maestro tests for our ECR mobile app."
