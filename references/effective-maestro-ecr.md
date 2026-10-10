@@ -444,6 +444,48 @@ for future Axis flows rather than rediscovering the same UI and state behavior.
   asserting exact transaction counts need backend fixtures, unique identifiers,
   or an authoritative cleanup API instead.
 
+### 2026-10-10 — Maestro `scroll` does not accept a `direction` property
+
+- **Context:** Z-Reading test (24) used `- scroll: direction: DOWN` to page
+  through a long report view.
+- **Observed failure:** Maestro Studio showed "Unknown Property: direction File:
+  …/24-RDG-BIR-04-z-reading-fields.yaml Line: 122 Column: 1 The property
+  'direction' is not recognized."
+- **Root cause:** The `scroll` command in Maestro is a bare action with no
+  properties — it always scrolls down. The `direction` property belongs to
+  `swipe`, not `scroll`.
+- **Resolution pattern:** Use plain `- scroll` (scrolls down by default). To
+  scroll up, use `- swipe: direction: DOWN` (swipe direction is the finger
+  gesture, opposite of visual scroll). To scroll to a specific element, use
+  `- scrollUntilVisible`.
+- **Reusable rule:** Never pass properties to `- scroll`. For directional
+  scrolling, use `- swipe` with `direction: UP` (to scroll content down) or
+  `direction: DOWN` (to scroll content up).
+- **Applied in:** `24-RDG-BIR-04-z-reading-fields.yaml` — replaced three
+  `scroll: direction: DOWN` blocks with plain `- scroll`.
+- **Validation:** Error was reproduced in Maestro Studio; fix confirmed by
+  removing the invalid property.
+
+### 2026-10-10 — Maestro Studio caches files and can overwrite disk edits
+
+- **Context:** Tests 17-41 were edited on disk via CLI while Maestro Studio
+  (Electron app, v0.9.7) was open or had been open earlier.
+- **Observed failure:** All regression test files (17-41) appeared deleted from
+  the `regression/` directory. Files were found in a renamed directory instead.
+- **Root cause:** Maestro Studio caches the `.maestro/` directory tree in memory.
+  When Studio writes back its cached state, it can overwrite or replace files
+  that were created or modified on disk outside Studio. The Studio process may
+  also hold the gRPC device connection, preventing headless `maestro test` from
+  running (DeviceServerDiedException / gRPC UNAVAILABLE).
+- **Resolution pattern:** Always close Maestro Studio before editing test files
+  on disk or running headless `maestro test`. Kill all related processes:
+  `pkill -f "maestro-studio"` and `pkill -f "studio-server.jar"`.
+- **Reusable rule:** Maestro Studio and CLI/disk edits are mutually exclusive.
+  Close Studio before switching to CLI workflows. If files go missing after a
+  Studio session, check whether Studio overwrote the directory with its cache.
+- **Validation:** Files were recovered from the renamed directory. Headless
+  tests ran successfully after killing all Studio processes.
+
 ### Current validation boundary
 
 - Exact cash, cash with change, manual-terminal card schemes, Test 13 restart
